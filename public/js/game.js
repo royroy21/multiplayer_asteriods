@@ -27,7 +27,9 @@ function preload() {
 function create() {
   var self = this;
   this.socket = io();
+  this.players = this.physics.add.group();
   this.otherPlayers = this.physics.add.group();
+
   this.socket.on('currentPlayers', function (players) {
     Object.keys(players).forEach(function (id) {
       if (players[id].playerId === self.socket.id) {
@@ -37,9 +39,11 @@ function create() {
       }
     });
   });
+
   this.socket.on('newPlayer', function (playerInfo) {
     addOtherPlayers(self, playerInfo);
   });
+
   this.socket.on('playerLeft', function (playerId) {
     self.otherPlayers.getChildren().forEach(function (otherPlayer) {
       if (playerId === otherPlayer.playerId) {
@@ -47,7 +51,6 @@ function create() {
       }
     });
   });
-  this.cursors = this.input.keyboard.createCursorKeys();
 
   this.socket.on('playerMoved', function (playerInfo) {
     self.otherPlayers.getChildren().forEach(function (otherPlayer) {
@@ -57,6 +60,9 @@ function create() {
       }
     });
   });
+
+  this.cursors = this.input.keyboard.createCursorKeys();
+  this.physics.add.collider(this.players, this.otherPlayers);
 }
 
 function update() {
@@ -75,9 +81,10 @@ function update() {
       this.physics.velocityFromRotation(this.ship.rotation + 1.5, shipAcceleration, this.ship.body.acceleration);
     } else {
       this.ship.setAcceleration(0);
+      // TODO - rewrite this using https://phaser.io/examples/v2/arcade-physics/asteroids-movement
+      this.ship.setVelocity(0);  // stops ship but too abruptly
     }
 
-    // Another bug here
     this.physics.world.wrap(this.ship, 5);
 
     // emit player movement
@@ -106,6 +113,7 @@ function addPlayer(self, playerInfo) {
   self.ship.setDrag(100);
   self.ship.setAngularDrag(100);
   self.ship.setMaxVelocity(200);
+  self.players.add(self.ship);
 }
 
 function addOtherPlayers(self, playerInfo) {
